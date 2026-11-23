@@ -1,0 +1,17 @@
+# Data, outputs and checkpoints stay out of the repo (too large; see README for how to obtain them)
+data/
+outputs/
+checkpoints/
+runs/
+*.pt
+*.pth
+*.ckpt
+*.zip
+*.tar*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
