@@ -1,6 +1,6 @@
 # CS-4212 project progress: document shadow removal with text preservation
 
-Student: Mouhamadou Mbengue. Last updated: 24 November 2026.
+Student: Mouhamadou Mbengue. Last updated: 25 November 2026.
 Status: revised proposal presented on 24 November 2026; the teacher accepted the direction.
 
 ## Project in a few sentences
@@ -60,8 +60,11 @@ Still to confirm later: the assignment number for the submission file names.
 - [ ] Stage 1d: Run the manifest on a real SD7K sample (waiting for the download).
 - [ ] Stage 1f: Capture phone photos (paired and unpaired) and run the manifest on the paired set.
 - [ ] Stage 2: Inspect the real sample visually: check alignment, check grouping accuracy, decide between the full set and a text-only subset.
-- [ ] Stage 3: Document-level split (before cropping), plus a crop manifest. Count documents, pairs and patches per split.
-- [ ] Stage 4: PyTorch dataset + compact U-Net + L1/Sobel-edge loss. Forward/backward check and tiny-batch overfit.
+- [x] Stage 3 (code): `make_split.py` (page-group split; official test kept; train pairs sharing a page with test excluded; 10% of train groups to validation) and `make_crops.py` (fixed seeded 256x256 crops, at most 20% near-blank). Run on real data still to do.
+- [x] Stage 4 (code): `src/model.py` (U-Net, base 32, depth 4: 7,766,051 parameters), `src/losses.py` (L1 + Sobel edge), `src/data.py`, `train.py`.
+- [x] Stage 4 (checks on synthetic images only, `tests/smoke_test.py`): forward/backward OK; no page group in two splits; one batch memorised (L1 from 0.0231, the do-nothing level, to 0.0008 in 300 steps); short training runs end to end.
+  Fixes found by the checks: the output layer now starts at zero so the untrained model returns the input unchanged (before, its first output was 20 times worse than doing nothing); validation PSNR is computed from the pooled error, because per-crop PSNR is inflated by shadow-free crops.
+- [ ] Stage 4b: full-page tiled inference and evaluation script.
 - [ ] Stage 5: Pilot epoch on the GPU: time, memory, cost estimate for all runs.
 - [ ] Stage 6: Small validation pilot to fix the edge weights. Then full runs.
 - [ ] Stage 7: Tiled full-page inference, evaluation on SD7K test pages and phone photos, report, final presentation.

@@ -8,8 +8,8 @@ version, using real paired photographs from the SD7K dataset. The experiment ask
 > Does adding an edge-preservation term to a reconstruction loss improve document shadow removal
 > while preserving text details?
 
-Status: early stage. See [PROGRESS.md](PROGRESS.md) for the checklist, verified facts and open
-questions. No model has been trained yet and no results exist.
+Status: data pipeline and training code written and checked on synthetic images. No model has
+been trained on real data yet and no results exist. See [PROGRESS.md](PROGRESS.md).
 
 ## Data
 
@@ -20,15 +20,34 @@ Download links are in the official repository: https://github.com/CXH-Research/D
 Images are not stored in this repository. Place the dataset under `data/SD7K/` with the official
 `<split>/input/` and `<split>/target/` folders.
 
-## Stage 1: build the pair manifest
+## Pipeline
 
 ```bash
 pip install -r requirements.txt
+
+# 1. Check every pair: decoding, sizes, alignment, page groups
 python scripts/build_manifest.py --root data/SD7K --out manifests --limit 50   # small sample first
+
+# 2. Split by page group (no page in two splits)
+python scripts/make_split.py --manifest manifests/manifest.csv --out manifests/split.csv
+
+# 3. Fixed list of 256x256 training/validation crops (the dataset "rows")
+python scripts/make_crops.py --split manifests/split.csv --out manifests/crops.csv
+
+# 4. Sanity check, then the experimental conditions (only --lambda-edge changes)
+python train.py --crops manifests/crops.csv --overfit-steps 300 --out runs/overfit
+python train.py --crops manifests/crops.csv --lambda-edge 0   --out runs/l1_seed0
+python train.py --crops manifests/crops.csv --lambda-edge 0.5 --out runs/edge0.5_seed0
 ```
 
-This writes `manifests/manifest.csv`, `unmatched.csv` and `summary.json`: one row per image pair,
-with sizes, checksums, an alignment check and a candidate source-document group.
+Code check on synthetic images (not project data): `python tests/smoke_test.py`
+
+| File | Purpose |
+|---|---|
+| `src/model.py` | Compact U-Net, RGB in and out, residual output starting as the identity |
+| `src/losses.py` | L1 loss and Sobel edge loss on luminance |
+| `src/data.py` | Serves the crops listed in `crops.csv` |
+| `train.py` | Training, validation, logging (`log.csv`) and checkpoint selection by validation L1 |
 
 ## References
 
