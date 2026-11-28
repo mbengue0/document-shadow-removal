@@ -6,8 +6,16 @@ Research question
     Does adding an edge-preservation term to a pixel reconstruction loss improve document
     shadow removal while preserving text details?
 
+Data (needed once)
+    Download SD7K.zip from the official SD7K link (OneDrive, listed at
+    https://github.com/CXH-Research/DocShadow-SD7K):
+        https://1drv.ms/u/s!Avp0JjwC1wv5jhx6TxHfjlL4BMuA?e=GFTcze
+    and unzip it into a folder named "data" next to this file, so that these folders exist:
+        data/train/input   data/train/target   data/test/input   data/test/target
+    (data/SD7K/train/... also works). Nothing in the code needs to be changed.
+
 What this single file does (run:  python code.py)
-    1. Finds the SD7K dataset (downloads and unzips it if it is missing).
+    1. Finds the SD7K dataset in ./data.
     2. Groups photos by printed page, splits by page (no page in two sets) and selects the
        256 x 256 training/validation crops. The result is written to dataset.csv.
        If dataset.csv already exists next to this file, it is reused as is.
@@ -96,9 +104,9 @@ from torch.utils.data import DataLoader, Dataset  # noqa: E402
 Image.MAX_IMAGE_PIXELS = None
 HERE = Path(__file__).resolve().parent
 
-# Shared Google Drive copy of the SD7K zip (the official OneDrive link is also listed in
-# the SD7K repository: https://github.com/CXH-Research/DocShadow-SD7K).
-DATA_ZIP_URL = ""  # filled in with the shared Drive link before submission
+# Optional: a direct-download link (e.g. Google Drive) to SD7K.zip. When set, a missing
+# dataset is downloaded automatically; when empty, the program explains where to get it.
+DATA_ZIP_URL = ""
 
 CONFIG = {
     "seed": 0,
@@ -161,9 +169,10 @@ def ensure_data(data_dir):
     if root:
         return root
     if not DATA_ZIP_URL:
-        sys.exit(f"SD7K not found under {data_dir}. Download it from "
-                 "https://github.com/CXH-Research/DocShadow-SD7K and unzip it there "
-                 "(expected folders: SD7K/train/input, SD7K/train/target, SD7K/test/...).")
+        sys.exit(f"SD7K not found under {data_dir}.\nDownload SD7K.zip from the official link "
+                 "https://1drv.ms/u/s!Avp0JjwC1wv5jhx6TxHfjlL4BMuA?e=GFTcze "
+                 "(see https://github.com/CXH-Research/DocShadow-SD7K) and unzip it into that folder, "
+                 "so that train/input, train/target, test/input and test/target exist. Then run again.")
     _ensure("gdown")
     import gdown
     data_dir.mkdir(parents=True, exist_ok=True)
