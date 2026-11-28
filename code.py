@@ -24,7 +24,7 @@ What this single file does (run:  python code.py)
 
 Requirements: Python 3.10+, torch, numpy, pillow, opencv-python-headless, matplotlib.
 Missing packages are installed automatically. A CUDA GPU is strongly recommended for
-training (about 1 hour per condition on a Colab T4); evaluation also runs on CPU, slowly.
+training (about 40 minutes per condition on a Colab T4); evaluation also runs on CPU, slowly.
 
 Useful options
     python code.py --quick            small end-to-end run (a few minutes) to check that
@@ -111,7 +111,7 @@ CONFIG = {
     "max_shift_px": 2,         # alignment tolerance, in pixels of a 512-pixel-wide copy
     "base_channels": 32,
     "depth": 4,
-    "epochs": 6,
+    "epochs": 3,               # 3 x 52,290 crops; about 41 min per model on a T4
     "batch_size": 16,
     "lr": 2e-4,
     # Edge weights, fixed BEFORE training: on 200 random training crops the shadowed input
