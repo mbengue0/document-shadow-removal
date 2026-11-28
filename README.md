@@ -20,7 +20,20 @@ Download links are in the official repository: https://github.com/CXH-Research/D
 Images are not stored in this repository. Place the dataset under `data/SD7K/` with the official
 `<split>/input/` and `<split>/target/` folders.
 
-## Pipeline
+## Run everything (single file)
+
+`code.py` contains the whole project: data checks, page-level split, crop list (`dataset.csv`),
+U-Net, losses, training, classical baseline, full-page evaluation and figures.
+
+```bash
+python code.py --data data --out outputs          # full run (GPU recommended)
+python code.py --quick                            # few-minute check that everything works
+```
+
+On Google Colab: open
+[colab_run.ipynb](https://colab.research.google.com/github/mbengue0/document-shadow-removal/blob/main/colab_run.ipynb).
+
+## Development scripts (earlier, split version)
 
 ```bash
 pip install -r requirements.txt
