@@ -482,6 +482,12 @@ def page_metrics(pred, target, text_thr):
 # ----------------------------------------------------------------------------------------
 # 6. Training
 # ----------------------------------------------------------------------------------------
+def use_amp(device):
+    """Mixed precision only on GPUs with fast float16 (compute capability >= 7.0, e.g. T4).
+    Older cards (e.g. Quadro P1000) are much slower in float16, so they use float32."""
+    return device.type == "cuda" and torch.cuda.get_device_capability(device)[0] >= 7
+
+
 def run_name(lam):
     return "unet_l1" if lam == 0 else f"unet_l1_edge{lam:g}"
 
@@ -516,11 +522,11 @@ def train_condition(lam, cache_dir, index, out_dir, cfg, device, workers):
     set_seed(cfg["seed"])  # same initial weights and batch order for every condition
     model = UNet(cfg["base_channels"], cfg["depth"]).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"])
-    amp = device.type == "cuda"
+    amp = use_amp(device)
     scaler = torch.amp.GradScaler(enabled=amp)
     g = torch.Generator().manual_seed(cfg["seed"])
     tl = DataLoader(CachedCrops(cache_dir, index["train"]), batch_size=cfg["batch_size"], shuffle=True,
-                    generator=g, num_workers=workers, pin_memory=amp, drop_last=True,
+                    generator=g, num_workers=workers, pin_memory=device.type == "cuda", drop_last=True,
                     persistent_workers=workers > 0)
     vl = DataLoader(CachedCrops(cache_dir, index["val"]), batch_size=64, num_workers=workers)
     total = cfg["epochs"] * len(tl)
@@ -540,7 +546,7 @@ def train_condition(lam, cache_dir, index, out_dir, cfg, device, workers):
         f"{sum(p.numel() for p in model.parameters()):,} parameters")
     for epoch in range(start, cfg["epochs"] + 1):
         t0, sums, n = time.time(), [0.0, 0.0, 0.0], 0
-        if amp:
+        if device.type == "cuda":
             torch.cuda.reset_peak_memory_stats()
         for x, y in tl:
             x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True)
@@ -560,7 +566,7 @@ def train_condition(lam, cache_dir, index, out_dir, cfg, device, workers):
         rec = {"epoch": epoch, "train_total": sums[0] / n, "train_l1": sums[1] / n, "train_edge": sums[2] / n,
                "val_l1": val["l1"], "val_edge": val["edge"], "val_psnr": val["psnr"],
                "seconds": round(time.time() - t0, 1),
-               "peak_gpu_mb": round(torch.cuda.max_memory_allocated() / 2 ** 20) if amp else 0}
+               "peak_gpu_mb": round(torch.cuda.max_memory_allocated() / 2 ** 20) if device.type == "cuda" else 0}
         history.append(rec)
         log(f"{run_name(lam)} epoch {epoch}/{cfg['epochs']}: " + ", ".join(
             f"{k}={v:.5f}" if isinstance(v, float) else f"{k}={v}" for k, v in rec.items() if k != "epoch"))
@@ -630,7 +636,7 @@ def restore_page(model, img, device, tile, overlap, batch=32):
     win = (win1[:, None] * win1[None, :]).view(1, 1, tile, tile)
     out, wsum = torch.zeros(1, 3, ph, pw), torch.zeros(1, 1, ph, pw)
     coords = [(i, j) for i in range(0, ph - tile + 1, step) for j in range(0, pw - tile + 1, step)]
-    amp = device.type == "cuda"
+    amp = use_amp(device)
     for s in range(0, len(coords), batch):
         cs = coords[s:s + batch]
         tiles = torch.cat([xp[:, :, i:i + tile, j:j + tile] for i, j in cs]).to(device)
